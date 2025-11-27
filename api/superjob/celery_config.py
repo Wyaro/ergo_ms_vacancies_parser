@@ -4,7 +4,7 @@
 """
 
 from typing import Dict, Any
-from core.api.src.core.utils.celery.base import CeleryModuleConfig
+from src.core.utils.celery.base import CeleryModuleConfig
 
 
 class SuperjobCeleryConfig(CeleryModuleConfig):

@@ -1,74 +1,110 @@
 {
   "enabled": true,
   "description": "Конфигурация фонового парсинга вакансий HeadHunter для сбора данных по технологиям",
-  "version": "0.2",
-  "updated": "2025-10-30",
+  "version": "0.3",
+  "updated": "2025-11-24",
   
   "schedules": {
-    "languages_every_4h": {
+    "languages_workdays": {
       "enabled": true,
       "category": "LANG",
-      "interval": "*/4 hours",
+      "interval": "weekdays 06:15, 12:15, 18:15",
       "pages": 2,
       "max_queries": 20,
-      "description": "Парсинг языков программирования каждые 4 часа"
+      "priority": 8,
+      "description": "Языки программирования 3 раза в рабочие дни (утро/обед/вечер)"
     },
-    "frameworks_every_6h": {
+    "languages_weekend": {
+      "enabled": true,
+      "category": "LANG",
+      "interval": "weekend 10:15, 18:15",
+      "pages": 2,
+      "max_queries": 20,
+      "priority": 6,
+      "description": "Языки программирования 2 раза в выходные"
+    },
+    "frameworks_workdays": {
       "enabled": true,
       "category": "FRAMEWORK",
-      "interval": "*/6 hours",
+      "interval": "weekdays 07:30, 13:30, 19:30",
       "pages": 2,
       "max_queries": 25,
-      "description": "Парсинг фреймворков каждые 6 часов"
+      "priority": 7,
+      "description": "Фреймворки 3 раза в рабочие дни со сдвигом от языков"
     },
-    "databases_every_8h": {
+    "frameworks_weekend": {
+      "enabled": true,
+      "category": "FRAMEWORK",
+      "interval": "weekend 11:30, 19:30",
+      "pages": 2,
+      "max_queries": 25,
+      "priority": 5,
+      "description": "Фреймворки 2 раза в выходные"
+    },
+    "databases_twice_daily": {
       "enabled": true,
       "category": "DB",
-      "interval": "*/8 hours",
+      "interval": "daily 08:45, 20:45",
       "pages": 2,
       "max_queries": 15,
-      "description": "Парсинг баз данных каждые 8 часов"
+      "priority": 5,
+      "description": "Базы данных 2 раза в день (утро и вечер)"
     },
-    "tools_every_12h": {
+    "tools_daily": {
       "enabled": true,
       "category": "TOOL",
-      "interval": "*/12 hours",
+      "interval": "daily 14:00",
       "pages": 2,
       "max_queries": 15,
-      "description": "Парсинг инструментов каждые 12 часов"
+      "priority": 4,
+      "description": "Инструменты 1 раз в день в обед"
     },
-    "top15_every_2h": {
+    "platforms_nightly": {
       "enabled": true,
-      "interval": "*/2 hours",
-      "top_n": 15,
+      "category": "PLATFORM",
+      "interval": "daily 23:30",
+      "pages": 2,
+      "max_queries": 15,
+      "use_aliases": true,
+      "priority": 3,
+      "description": "Облачные платформы ночью когда нагрузка минимальна"
+    },
+    "top20_pulse": {
+      "enabled": true,
+      "interval": "weekdays */3 hours (09:00-21:00)",
+      "top_n": 20,
       "pages": 1,
       "get_details": false,
-      "description": "Быстрый парсинг топ-15 самых востребованных технологий каждые 2 часа"
+      "priority": 9,
+      "description": "Быстрый пульс топ-20 технологий каждые 3 часа в рабочее время"
     },
-    "top30_4times_daily": {
+    "top40_deep_scan": {
       "enabled": true,
-      "time": "02:00, 08:00, 14:00, 20:00",
-      "top_n": 30,
+      "interval": "daily 03:00",
+      "top_n": 40,
       "categories": ["LANG", "FRAMEWORK"],
-      "pages": 2,
-      "description": "Парсинг топ-30 языков программирования и фреймворков 4 раза в день"
+      "pages": 3,
+      "get_details": true,
+      "priority": 6,
+      "description": "Глубокое сканирование топ-40 ночью с полными деталями"
     },
     "weekly_comprehensive": {
       "enabled": true,
-      "time": "Sunday 10:00",
-      "top_n": 50,
+      "interval": "Sunday 04:00",
+      "top_n": 60,
       "use_aliases": true,
-      "pages": 2,
-      "max_queries": 100,
-      "description": "Еженедельный всесторонний парсинг топ-50 технологий всех категорий с использованием алиасов"
+      "pages": 3,
+      "max_queries": 120,
+      "priority": 7,
+      "description": "Еженедельный полный парсинг всех технологий с алиасами"
     },
-    "nightly_platforms": {
+    "vacancies_status_check": {
       "enabled": true,
-      "category": "PLATFORM",
-      "time": "23:30",
-      "pages": 2,
-      "max_queries": 15,
-      "description": "Ночной парсинг облачных платформ"
+      "interval": "daily 05:00",
+      "batch_size": 150,
+      "max_vacancies": 800,
+      "priority": 2,
+      "description": "Проверка актуальности вакансий рано утром"
     }
   },
   
@@ -77,14 +113,31 @@
     "delay": 1.5,
     "get_details": true,
     "use_aliases": false,
-    "description": "Общие настройки: Россия (area 113), задержка 1.5 сек между запросами, получение деталей вакансий, алиасы отключены по умолчанию"
+    "description": "Общие настройки: Россия (area 113), задержка 1.5 сек, детали включены"
   },
 
   "performance": {
-    "max_concurrent_tasks": 3,
-    "rate_limit": "20/minute",
-    "retry_delay": 60,
-    "description": "Ограничения производительности: макс 3 одновременных задачи, 20 запросов в минуту, повтор через 60 сек при ошибке"
+    "max_concurrent_tasks": 2,
+    "rate_limit_per_minute": 25,
+    "retry_delay_seconds": 90,
+    "night_mode": {
+      "enabled": true,
+      "hours": "01:00-05:00",
+      "max_concurrent_tasks": 3,
+      "rate_limit_per_minute": 35,
+      "description": "Ночью можно парсить интенсивнее"
+    },
+    "description": "Ограничения: макс 2 параллельные задачи днем, 3 ночью"
+  },
+
+  "priority_levels": {
+    "9": "Критический - пульс топовых технологий",
+    "8": "Высокий - языки программирования",
+    "7": "Средне-высокий - фреймворки, еженедельный парсинг",
+    "6": "Средний - глубокое сканирование, выходные",
+    "5": "Средне-низкий - базы данных, фреймворки в выходные",
+    "4": "Низкий - инструменты",
+    "3": "Фоновый - платформы",
+    "2": "Минимальный - проверка статуса"
   }
 }
-

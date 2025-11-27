@@ -68,3 +68,6 @@ class HeadhunterCeleryConfig(CeleryModuleConfig):
         """Создает специализированный логгер для модуля"""
         import logging
         return logging.getLogger(f'celery.module.{self.module_name}.{logger_name}')
+
+    def get_max_concurrent_tasks(self) -> int:
+        return 3  # Максимум 3 одновременных задачи

@@ -1,6 +1,8 @@
 """
 Конфигурация Celery Beat для модуля HeadHunter.
 Настройка периодических задач парсинга вакансий.
+
+Версия 0.3: Оптимизированное расписание без конфликтов по времени.
 """
 
 from typing import Dict, Any
@@ -12,6 +14,12 @@ from src.core.utils.celery_beat.base import CeleryBeatModuleConfig
 class HeadhunterCeleryBeatConfig(CeleryBeatModuleConfig):
     """
     Конфигурация периодических задач для парсинга HeadHunter.
+    
+    Принципы расписания:
+    - Разнесение задач по времени (разные минуты) для избежания конфликтов
+    - Разные расписания для рабочих и выходных дней
+    - Интенсивный парсинг ночью, когда нагрузка на API минимальна
+    - Приоритизация по важности категорий
     """
     
     def get_beat_schedule(self) -> Dict[str, Dict[str, Any]]:
@@ -23,15 +31,15 @@ class HeadhunterCeleryBeatConfig(CeleryBeatModuleConfig):
         """
         return {
             # ============================================================
-            # ПАРСИНГ ПО ЯЗЫКАМ ПРОГРАММИРОВАНИЯ (каждые 4 часа)
+            # ЯЗЫКИ ПРОГРАММИРОВАНИЯ - РАБОЧИЕ ДНИ (3 раза в день)
             # ============================================================
-            'hh-parse-languages-every-4h': {
+            'hh-languages-workdays-morning': {
                 'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
-                'schedule': crontab(minute=0, hour='*/4'),  # Каждые 4 часа
+                'schedule': crontab(minute=15, hour=6, day_of_week='1-5'),
                 'kwargs': {
                     'category': 'LANG',
                     'use_aliases': False,
-                    'area': 113,  # Россия
+                    'area': 113,
                     'pages': 2,
                     'delay': 1.5,
                     'get_details': True,
@@ -39,17 +47,93 @@ class HeadhunterCeleryBeatConfig(CeleryBeatModuleConfig):
                 },
                 'options': {
                     'queue': 'headhunter',
-                    'priority': 7,
-                    'expires': 3 * 60 * 60,  # Не запускать следующую задачу, если текущая висит
+                    'priority': 8,
+                    'expires': 4 * 60 * 60,
+                }
+            },
+            'hh-languages-workdays-noon': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
+                'schedule': crontab(minute=15, hour=12, day_of_week='1-5'),
+                'kwargs': {
+                    'category': 'LANG',
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 2,
+                    'delay': 1.5,
+                    'get_details': True,
+                    'max_queries': 20
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 8,
+                    'expires': 4 * 60 * 60,
+                }
+            },
+            'hh-languages-workdays-evening': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
+                'schedule': crontab(minute=15, hour=18, day_of_week='1-5'),
+                'kwargs': {
+                    'category': 'LANG',
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 2,
+                    'delay': 1.5,
+                    'get_details': True,
+                    'max_queries': 20
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 8,
+                    'expires': 4 * 60 * 60,
                 }
             },
             
             # ============================================================
-            # ПАРСИНГ ПО ФРЕЙМВОРКАМ (каждые 6 часов)
+            # ЯЗЫКИ ПРОГРАММИРОВАНИЯ - ВЫХОДНЫЕ (2 раза в день)
             # ============================================================
-            'hh-parse-frameworks-every-6h': {
+            'hh-languages-weekend-morning': {
                 'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
-                'schedule': crontab(minute=30, hour='*/6'),  # Каждые 6 часов
+                'schedule': crontab(minute=15, hour=10, day_of_week='0,6'),
+                'kwargs': {
+                    'category': 'LANG',
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 2,
+                    'delay': 1.5,
+                    'get_details': True,
+                    'max_queries': 20
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 6,
+                    'expires': 6 * 60 * 60,
+                }
+            },
+            'hh-languages-weekend-evening': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
+                'schedule': crontab(minute=15, hour=18, day_of_week='0,6'),
+                'kwargs': {
+                    'category': 'LANG',
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 2,
+                    'delay': 1.5,
+                    'get_details': True,
+                    'max_queries': 20
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 6,
+                    'expires': 6 * 60 * 60,
+                }
+            },
+            
+            # ============================================================
+            # ФРЕЙМВОРКИ - РАБОЧИЕ ДНИ (3 раза, сдвиг от языков)
+            # ============================================================
+            'hh-frameworks-workdays-morning': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
+                'schedule': crontab(minute=30, hour=7, day_of_week='1-5'),
                 'kwargs': {
                     'category': 'FRAMEWORK',
                     'use_aliases': False,
@@ -61,17 +145,93 @@ class HeadhunterCeleryBeatConfig(CeleryBeatModuleConfig):
                 },
                 'options': {
                     'queue': 'headhunter',
-                    'priority': 6,
+                    'priority': 7,
+                    'expires': 4 * 60 * 60,
+                }
+            },
+            'hh-frameworks-workdays-noon': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
+                'schedule': crontab(minute=30, hour=13, day_of_week='1-5'),
+                'kwargs': {
+                    'category': 'FRAMEWORK',
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 2,
+                    'delay': 1.5,
+                    'get_details': True,
+                    'max_queries': 25
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 7,
+                    'expires': 4 * 60 * 60,
+                }
+            },
+            'hh-frameworks-workdays-evening': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
+                'schedule': crontab(minute=30, hour=19, day_of_week='1-5'),
+                'kwargs': {
+                    'category': 'FRAMEWORK',
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 2,
+                    'delay': 1.5,
+                    'get_details': True,
+                    'max_queries': 25
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 7,
                     'expires': 4 * 60 * 60,
                 }
             },
             
             # ============================================================
-            # ПАРСИНГ ПО БАЗАМ ДАННЫХ (каждые 8 часов)
+            # ФРЕЙМВОРКИ - ВЫХОДНЫЕ (2 раза)
             # ============================================================
-            'hh-parse-databases-every-8h': {
+            'hh-frameworks-weekend-morning': {
                 'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
-                'schedule': crontab(minute=0, hour='*/8'),  # Каждые 8 часов
+                'schedule': crontab(minute=30, hour=11, day_of_week='0,6'),
+                'kwargs': {
+                    'category': 'FRAMEWORK',
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 2,
+                    'delay': 1.5,
+                    'get_details': True,
+                    'max_queries': 25
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 5,
+                    'expires': 6 * 60 * 60,
+                }
+            },
+            'hh-frameworks-weekend-evening': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
+                'schedule': crontab(minute=30, hour=19, day_of_week='0,6'),
+                'kwargs': {
+                    'category': 'FRAMEWORK',
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 2,
+                    'delay': 1.5,
+                    'get_details': True,
+                    'max_queries': 25
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 5,
+                    'expires': 6 * 60 * 60,
+                }
+            },
+            
+            # ============================================================
+            # БАЗЫ ДАННЫХ (2 раза в день)
+            # ============================================================
+            'hh-databases-morning': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
+                'schedule': crontab(minute=45, hour=8),
                 'kwargs': {
                     'category': 'DB',
                     'use_aliases': False,
@@ -84,16 +244,34 @@ class HeadhunterCeleryBeatConfig(CeleryBeatModuleConfig):
                 'options': {
                     'queue': 'headhunter',
                     'priority': 5,
-                    'expires': 5 * 60 * 60,
+                    'expires': 8 * 60 * 60,
+                }
+            },
+            'hh-databases-evening': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
+                'schedule': crontab(minute=45, hour=20),
+                'kwargs': {
+                    'category': 'DB',
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 2,
+                    'delay': 1.5,
+                    'get_details': True,
+                    'max_queries': 15
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 5,
+                    'expires': 8 * 60 * 60,
                 }
             },
             
             # ============================================================
-            # ПАРСИНГ ПО ИНСТРУМЕНТАМ (каждые 12 часов)
+            # ИНСТРУМЕНТЫ (1 раз в день)
             # ============================================================
-            'hh-parse-tools-every-12h': {
+            'hh-tools-daily': {
                 'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
-                'schedule': crontab(minute=0, hour='*/12'),  # Каждые 12 часов
+                'schedule': crontab(minute=0, hour=14),
                 'kwargs': {
                     'category': 'TOOL',
                     'use_aliases': False,
@@ -106,39 +284,16 @@ class HeadhunterCeleryBeatConfig(CeleryBeatModuleConfig):
                 'options': {
                     'queue': 'headhunter',
                     'priority': 4,
-                    'expires': 6 * 60 * 60,
+                    'expires': 12 * 60 * 60,
                 }
             },
             
             # ============================================================
-            # ЕЖЕНЕДЕЛЬНЫЙ ПАРСИНГ С АЛИАСАМИ (более широкий поиск)
+            # ОБЛАЧНЫЕ ПЛАТФОРМЫ (ночью)
             # ============================================================
-            'hh-parse-top-technologies-weekly': {
-                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_technologies',
-                'schedule': crontab(day_of_week='sunday', hour=10, minute=0),  # Каждое воскресенье в 10:00
-                'kwargs': {
-                    'categories': ['LANG', 'FRAMEWORK'],
-                    'top_n': 50,
-                    'use_aliases': True,  # С алиасами для более широкого поиска
-                    'area': 113,
-                    'pages': 2,
-                    'delay': 2.5,
-                    'get_details': True,
-                    'max_queries': 100
-                },
-                'options': {
-                    'queue': 'headhunter',
-                    'priority': 6,
-                    'expires': 2 * 60 * 60,
-                }
-            },
-            
-            # ============================================================
-            # НОЧНОЙ ПАРСИНГ ПО ОБЛАЧНЫМ ПЛАТФОРМАМ
-            # ============================================================
-            'hh-parse-platforms-nightly': {
+            'hh-platforms-nightly': {
                 'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_category',
-                'schedule': crontab(hour=23, minute=30),  # Каждую ночь в 23:30
+                'schedule': crontab(minute=30, hour=23),
                 'kwargs': {
                     'category': 'PLATFORM',
                     'use_aliases': True,
@@ -156,48 +311,165 @@ class HeadhunterCeleryBeatConfig(CeleryBeatModuleConfig):
             },
             
             # ============================================================
-            # БЫСТРЫЙ ПАРСИНГ КАЖДЫЕ 2 ЧАСА (топ-15 технологий)
+            # ПУЛЬС ТОП-20 (рабочие дни, каждые 3 часа в рабочее время)
             # ============================================================
-            'hh-parse-top15-every-2h': {
+            'hh-top20-pulse-09': {
                 'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_technologies',
-                'schedule': crontab(minute=15, hour='*/2'),  # Каждые 2 часа
+                'schedule': crontab(minute=0, hour=9, day_of_week='1-5'),
                 'kwargs': {
                     'categories': None,
-                    'top_n': 15,
+                    'top_n': 20,
                     'use_aliases': False,
                     'area': 113,
                     'pages': 1,
                     'delay': 1.0,
-                    'get_details': False,  # Без деталей - быстрее
-                    'max_queries': 15
+                    'get_details': False,
+                    'max_queries': 20
                 },
                 'options': {
                     'queue': 'headhunter',
-                    'priority': 8,
-                    'expires': 90 * 60,  # 1.5 часа
+                    'priority': 9,
+                    'expires': 2 * 60 * 60,
+                }
+            },
+            'hh-top20-pulse-12': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_technologies',
+                'schedule': crontab(minute=0, hour=12, day_of_week='1-5'),
+                'kwargs': {
+                    'categories': None,
+                    'top_n': 20,
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 1,
+                    'delay': 1.0,
+                    'get_details': False,
+                    'max_queries': 20
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 9,
+                    'expires': 2 * 60 * 60,
+                }
+            },
+            'hh-top20-pulse-15': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_technologies',
+                'schedule': crontab(minute=0, hour=15, day_of_week='1-5'),
+                'kwargs': {
+                    'categories': None,
+                    'top_n': 20,
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 1,
+                    'delay': 1.0,
+                    'get_details': False,
+                    'max_queries': 20
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 9,
+                    'expires': 2 * 60 * 60,
+                }
+            },
+            'hh-top20-pulse-18': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_technologies',
+                'schedule': crontab(minute=0, hour=18, day_of_week='1-5'),
+                'kwargs': {
+                    'categories': None,
+                    'top_n': 20,
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 1,
+                    'delay': 1.0,
+                    'get_details': False,
+                    'max_queries': 20
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 9,
+                    'expires': 2 * 60 * 60,
+                }
+            },
+            'hh-top20-pulse-21': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_technologies',
+                'schedule': crontab(minute=0, hour=21, day_of_week='1-5'),
+                'kwargs': {
+                    'categories': None,
+                    'top_n': 20,
+                    'use_aliases': False,
+                    'area': 113,
+                    'pages': 1,
+                    'delay': 1.0,
+                    'get_details': False,
+                    'max_queries': 20
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 9,
+                    'expires': 2 * 60 * 60,
                 }
             },
             
             # ============================================================
-            # СРЕДНИЙ ПАРСИНГ КАЖДЫЕ 6 ЧАСОВ (топ-30 технологий)
+            # ГЛУБОКОЕ СКАНИРОВАНИЕ ТОП-40 (ночью)
             # ============================================================
-            'hh-parse-top30-every-6h': {
+            'hh-top40-deep-scan': {
                 'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_technologies',
-                'schedule': crontab(minute=0, hour='2,8,14,20'),  # 4 раза в день
+                'schedule': crontab(minute=0, hour=3),
                 'kwargs': {
                     'categories': ['LANG', 'FRAMEWORK'],
-                    'top_n': 30,
+                    'top_n': 40,
                     'use_aliases': False,
                     'area': 113,
-                    'pages': 2,
-                    'delay': 1.5,
+                    'pages': 3,
+                    'delay': 2.0,
                     'get_details': True,
-                    'max_queries': 30
+                    'max_queries': 40
                 },
                 'options': {
                     'queue': 'headhunter',
                     'priority': 6,
-                    'expires': 5 * 60 * 60,
+                    'expires': 4 * 60 * 60,
+                }
+            },
+            
+            # ============================================================
+            # ЕЖЕНЕДЕЛЬНЫЙ ПОЛНЫЙ ПАРСИНГ (воскресенье ночью)
+            # ============================================================
+            'hh-weekly-comprehensive': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_technologies',
+                'schedule': crontab(minute=0, hour=4, day_of_week='sunday'),
+                'kwargs': {
+                    'categories': ['LANG', 'FRAMEWORK', 'DB', 'TOOL'],
+                    'top_n': 60,
+                    'use_aliases': True,
+                    'area': 113,
+                    'pages': 3,
+                    'delay': 2.5,
+                    'get_details': True,
+                    'max_queries': 120
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 7,
+                    'expires': 6 * 60 * 60,
+                }
+            },
+            
+            # ============================================================
+            # ПРОВЕРКА СТАТУСА ВАКАНСИЙ (рано утром)
+            # ============================================================
+            'hh-check-vacancies-status': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.check_vacancies_status_task',
+                'schedule': crontab(minute=0, hour=5),
+                'kwargs': {
+                    'batch_size': 150,
+                    'delay': 0.2,
+                    'max_vacancies': 800
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 2,
+                    'expires': 6 * 60 * 60,
                 }
             },
         }
@@ -211,7 +483,6 @@ class HeadhunterCeleryBeatConfig(CeleryBeatModuleConfig):
         """
         return {
             'headhunter_beat_enabled': True,
-            'headhunter_beat_max_interval': 300,  # Максимальный интервал проверки в секундах
-            'headhunter_beat_sync_every': 60,  # Синхронизация каждые 60 секунд
+            'headhunter_beat_max_interval': 300,
+            'headhunter_beat_sync_every': 60,
         }
-
