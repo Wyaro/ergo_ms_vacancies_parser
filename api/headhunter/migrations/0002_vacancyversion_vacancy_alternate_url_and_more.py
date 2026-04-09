@@ -47,6 +47,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Версия вакансии',
                 'verbose_name_plural': 'Версии вакансий',
                 'ordering': ['-version_number'],
+                'db_table': 'vpm_hh_vacancy_version',
             },
         ),
         migrations.AddField(

@@ -9,14 +9,18 @@
     "Django",
     "DevOps"
   ],
-  "town": "Москва",
+  "town": null,
   "experience": null,
   "employment": null,
   "schedule": null,
-  "max_pages": 5,
+  "max_pages": 500,
   "delay": 1.0,
+  "catalogues": {
+    "default_ids": [33],
+    "max_pages_per_catalogue": 500
+  },
   "universal_parsing": {
     "max_pages_per_query": 3,
     "delay": 1.0
   }
-} 
+}

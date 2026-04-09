@@ -99,11 +99,24 @@ class Command(BaseCommand):
             if wait:
                 self.stdout.write('Запуск задачи с ожиданием...')
 
-                # Запускаем в Celery
-                task = task_func.apply_async(
-                    kwargs=task_kwargs,
-                    **task_options
-                )
+                # Запускаем в Celery с обработкой ошибок брокера
+                from modules.vacancies_parser.api.core.utils.task_runner import safe_task_run
+                from modules.vacancies_parser.api.core.utils.celery_broker import BrokerUnavailableError
+                
+                try:
+                    result = safe_task_run(
+                        task_func.apply_async,
+                        {'kwargs': task_kwargs, **task_options},
+                        prefer_async=True,
+                        fallback_to_sync=False
+                    )
+                    task = result
+                except BrokerUnavailableError as e:
+                    self.stdout.write(self.style.ERROR(f'Ошибка: {e}'))  # type: ignore[attr-defined]
+                    self.stdout.write('Решения:')
+                    self.stdout.write('  1. Запустите Celery worker: ergoms start-worker')
+                    self.stdout.write('  2. Запустите Celery beat: ergoms start-beat')
+                    raise
 
                 self.stdout.write(f'Task ID: {task.id}')
                 self.stdout.write('Ожидание завершения...')
@@ -128,10 +141,23 @@ class Command(BaseCommand):
                     self.stdout.write(f'Ошибка: {task.result}')
             else:
                 # Асинхронный запуск
-                task = task_func.apply_async(
-                    kwargs=task_kwargs,
-                    **task_options
-                )
+                from modules.vacancies_parser.api.core.utils.task_runner import safe_task_run
+                from modules.vacancies_parser.api.core.utils.celery_broker import BrokerUnavailableError
+                
+                try:
+                    result = safe_task_run(
+                        task_func.apply_async,
+                        {'kwargs': task_kwargs, **task_options},
+                        prefer_async=True,
+                        fallback_to_sync=False
+                    )
+                    task = result
+                except BrokerUnavailableError as e:
+                    self.stdout.write(self.style.ERROR(f'Ошибка: {e}'))  # type: ignore[attr-defined]
+                    self.stdout.write('Решения:')
+                    self.stdout.write('  1. Запустите Celery worker: ergoms start-worker')
+                    self.stdout.write('  2. Запустите Celery beat: ergoms start-beat')
+                    raise
 
                 self.stdout.write('Задача запущена асинхронно!')
                 self.stdout.write(f'Task ID: {task.id}')

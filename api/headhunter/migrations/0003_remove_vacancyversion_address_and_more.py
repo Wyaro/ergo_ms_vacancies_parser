@@ -131,6 +131,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'История изменений вакансии',
                 'verbose_name_plural': 'История изменений вакансий',
                 'ordering': ['-created_at'],
+                'db_table': 'vpm_hh_vacancy_change_history',
                 'indexes': [models.Index(fields=['vacancy', 'version'], name='vacancies_p_vacancy_a33263_idx'), models.Index(fields=['field_name'], name='vacancies_p_field_n_a5a6a6_idx'), models.Index(fields=['created_at'], name='vacancies_p_created_65b063_idx')],
             },
         ),

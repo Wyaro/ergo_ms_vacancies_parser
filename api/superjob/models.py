@@ -67,6 +67,7 @@ class SuperJobVacancy(models.Model):
         verbose_name = "Вакансия SuperJob"
         verbose_name_plural = "Вакансии SuperJob"
         ordering = ['-published_at']
+        db_table = 'vpm_sj_vacancy'
         indexes = [
             models.Index(fields=['title']),
             models.Index(fields=['company_name']),
@@ -101,20 +102,22 @@ class SuperJobVacancy(models.Model):
         
         return salary_str
     
-    def create_version(self, new_data=None):
-        """Создание новой версии вакансии"""
-        from .models import SuperJobVacancyVersion, SuperJobVacancyChangeHistory
-        
-        # Увеличиваем номер версии
+    def create_version(self, new_data=None, auto_save=True):
+        """
+        Создание новой версии вакансии.
+
+        Args:
+            new_data: Новые данные для сравнения с текущими.
+            auto_save: Сохранить вакансию после создания версии.
+                       False при bulk-операциях (вызывающая сторона сохраняет через bulk_update).
+        """
         self.current_version += 1
         
-        # Создаем запись о версии
         version = SuperJobVacancyVersion.objects.create(
             vacancy=self,
             version_number=self.current_version
         )
         
-        # Если переданы новые данные, сравниваем с текущими
         if new_data:
             changes = []
             for field_name, new_value in new_data.items():
@@ -127,21 +130,16 @@ class SuperJobVacancy(models.Model):
                             'new_value': str(new_value) if new_value is not None else ''
                         })
             
-            # Создаем записи об изменениях
-            for change in changes:
-                SuperJobVacancyChangeHistory.objects.create(
-                    vacancy=self,
-                    version=version,
-                    **change
-                )
-            
-            # Обновляем описание изменений
             if changes:
-                change_summary = f"Изменено полей: {len(changes)}"
-                version.change_summary = change_summary
+                SuperJobVacancyChangeHistory.objects.bulk_create([
+                    SuperJobVacancyChangeHistory(vacancy=self, version=version, **change)
+                    for change in changes
+                ])
+                version.change_summary = f"Изменено полей: {len(changes)}"
                 version.save()
         
-        self.save()
+        if auto_save:
+            self.save()
         return version
     
     def has_changes(self, new_data):
@@ -168,6 +166,7 @@ class SuperJobVacancyVersion(models.Model):
         verbose_name = "Версия вакансии SuperJob"
         verbose_name_plural = "Версии вакансий SuperJob"
         ordering = ['-version_number']
+        db_table = 'vpm_sj_vacancy_version'
         unique_together = ['vacancy', 'version_number']
         indexes = [
             models.Index(fields=['vacancy', 'version_number']),
@@ -209,6 +208,7 @@ class SuperJobVacancyChangeHistory(models.Model):
         verbose_name = "История изменений вакансии SuperJob"
         verbose_name_plural = "История изменений вакансий SuperJob"
         ordering = ['-created_at']
+        db_table = 'vpm_sj_vacancy_change_history'
         indexes = [
             models.Index(fields=['vacancy', 'created_at']),
             models.Index(fields=['field_name']),

@@ -1,5 +1,4 @@
 from django.db import models
-from django.utils import timezone
 
 
 class Vacancy(models.Model):
@@ -65,6 +64,7 @@ class Vacancy(models.Model):
         verbose_name = "Вакансия Хабр Карьера"
         verbose_name_plural = "Вакансии Хабр Карьера"
         ordering = ['-published_at']
+        db_table = 'vpm_hc_vacancy'
         indexes = [
             models.Index(fields=['title']),
             models.Index(fields=['company_name']),
@@ -100,9 +100,6 @@ class Vacancy(models.Model):
     
     def create_version(self, new_data=None):
         """Создание новой версии вакансии"""
-        from .models import VacancyVersion, VacancyChangeHistory
-        
-        # Создаем новую версию
         version = VacancyVersion.objects.create(
             vacancy=self,
             version_number=self.current_version + 1
@@ -130,11 +127,13 @@ class Vacancy(models.Model):
         """Проверка наличия изменений в данных вакансии"""
         changes = {}
         
-        # Список полей для сравнения
         fields_to_compare = [
             'title', 'company_name', 'salary_from', 'salary_to', 'salary_currency',
-            'city', 'description', 'employment_type', 'experience_level', 'qualification',
-            'url', 'company_url', 'marked', 'premium'
+            'salary_gross', 'city', 'address', 'description', 'requirements',
+            'responsibilities', 'employment_type', 'experience_level', 'qualification',
+            'skills', 'specializations', 'divisions', 'schedule_type',
+            'url', 'company_url', 'marked', 'premium', 'has_test',
+            'response_letter_required', 'is_active',
         ]
         
         for field in fields_to_compare:
@@ -161,6 +160,7 @@ class VacancyVersion(models.Model):
         verbose_name = "Версия вакансии Хабр Карьера"
         verbose_name_plural = "Версии вакансий Хабр Карьера"
         ordering = ['-version_number']
+        db_table = 'vpm_hc_vacancy_version'
         unique_together = ['vacancy', 'version_number']
         indexes = [
             models.Index(fields=['vacancy', 'version_number']),
@@ -204,6 +204,7 @@ class VacancyChangeHistory(models.Model):
         verbose_name = "История изменений вакансии Хабр Карьера"
         verbose_name_plural = "История изменений вакансий Хабр Карьера"
         ordering = ['-created_at']
+        db_table = 'vpm_hc_vacancy_change_history'
         indexes = [
             models.Index(fields=['vacancy', 'created_at']),
             models.Index(fields=['field_name']),

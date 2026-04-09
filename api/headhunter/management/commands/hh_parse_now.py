@@ -1,18 +1,29 @@
 """
 Команда для немедленного запуска парсинга вне очереди.
-
-Позволяет быстро запустить парсинг не дожидаясь расписания.
 """
 
+import json
 import logging
-from django.core.management.base import BaseCommand
+from typing import Any, Dict
+
+from django.core.management.base import BaseCommand, CommandError
 
 from modules.vacancies_parser.api.headhunter.tasks import (
     parse_vacancies_by_technologies,
-    parse_vacancies_by_category
+    parse_vacancies_by_category,
 )
+from modules.vacancies_parser.api.core.utils.task_runner import safe_task_run
+from modules.vacancies_parser.api.core.utils.celery_broker import BrokerUnavailableError
 
 logger = logging.getLogger('modules.vacancies_parser.headhunter')
+
+TEXT: Dict[str, str] = {
+    'line_sep': '-' * 64,
+    'header': 'Немедленный запуск парсинга',
+    'queued': 'Задача запущена в фоне.',
+    'started': 'Запуск парсинга (ожидайте)...',
+    'finished': 'Парсинг завершён.',
+}
 
 
 class Command(BaseCommand):
@@ -36,53 +47,33 @@ class Command(BaseCommand):
             action='store_true',
             help='Запустить асинхронно (в фоне), иначе с ожиданием'
         )
+        parser.add_argument(
+            '--json-output',
+            action='store_true',
+            help='Вывести результат в JSON'
+        )
+        parser.add_argument(
+            '--quiet',
+            action='store_true',
+            help='Минимальный вывод'
+        )
 
     def handle(self, *args, **options):
-        preset = options.get('preset')
-        category = options.get('category')
-        is_async = options.get('async')
+        ctx = self._parse_options(options)
+        self._print_header(ctx)
 
-        self.stdout.write('=== НЕМЕДЛЕННЫЙ ЗАПУСК ПАРСИНГА ===')
-        
-        # Определяем параметры в зависимости от пресета
-        if category:
-            params = self._get_category_params(category)
-            task_func = parse_vacancies_by_category
-        else:
-            params = self._get_preset_params(preset)
-            task_func = parse_vacancies_by_technologies
-        
-        # Вывод информации
-        self.stdout.write(f'Режим: {preset.upper() if not category else f"CATEGORY: {category}"}')
-        self.stdout.write('Параметры:')
-        for key, value in params.items():
-            self.stdout.write(f'   - {key}: {value}')
+        params, task_func = self._resolve_params(ctx)
 
-        self.stdout.write(f'Режим выполнения: {"Асинхронный (фон)" if is_async else "Синхронный (с ожиданием)"}')
-        self.stdout.write()
-        
-        # Запуск
         try:
-            if is_async:
-                # Асинхронный запуск
-                task = task_func.delay(**params)
-                self.stdout.write('Задача запущена в фоне!')
-                self.stdout.write(f'Task ID: {task.id}')
-                self.stdout.write('Проверьте статус через логи или Django shell')
+            if ctx['is_async']:
+                self._run_async(task_func, params, ctx)
             else:
-                # Синхронный запуск
-                self.stdout.write('Запуск парсинга (ожидайте)...')
-                result = task_func(**params)
-
-                self.stdout.write('\n=== ПАРСИНГ ЗАВЕРШЕН! ===')
-
-                if result.get('error'):
-                    self.stdout.write(f'Ошибка: {result["error"]}')
-                else:
-                    self._print_results(result)
-                
+                self._run_sync(task_func, params, ctx)
         except Exception as e:
-            self.stdout.write(f'Ошибка при запуске: {e}')
+            if ctx['json_output']:
+                self.stdout.write(json.dumps({'error': str(e)}, ensure_ascii=False))
+            else:
+                self.stdout.write(f'Ошибка при запуске: {e}')
             logger.exception('Ошибка при немедленном запуске парсинга')
     
     def _get_preset_params(self, preset):
@@ -159,6 +150,91 @@ class Command(BaseCommand):
         self.stdout.write(f"Новых вакансий: {result.get('new_vacancies', 0)}")
         self.stdout.write(f"Обновлено: {result.get('updated_vacancies', 0)}")
         self.stdout.write(f"Всего в базе: {result.get('total_in_db', 0)}")
+
+    def _parse_options(self, options) -> Dict[str, Any]:
+        return {
+            'preset': options.get('preset'),
+            'category': options.get('category'),
+            'is_async': bool(options.get('async')),
+            'json_output': bool(options.get('json_output')),
+            'quiet': bool(options.get('quiet')),
+        }
+
+    def _print_header(self, ctx: Dict[str, Any]):
+        if ctx['json_output'] or ctx['quiet']:
+            return
+        self.stdout.write(TEXT['line_sep'])
+        self.stdout.write(TEXT['header'])
+        self.stdout.write(TEXT['line_sep'])
+
+    def _resolve_params(self, ctx: Dict[str, Any]):
+        if ctx['category']:
+            params = self._get_category_params(ctx['category'])
+            task_func = parse_vacancies_by_category
+        else:
+            params = self._get_preset_params(ctx['preset'])
+            task_func = parse_vacancies_by_technologies
+        return params, task_func
+
+    def _run_async(self, task_func, params: Dict[str, Any], ctx: Dict[str, Any]):
+        try:
+            result = safe_task_run(
+                task_func,
+                params,
+                prefer_async=True,
+                fallback_to_sync=True
+            )
+            
+            if hasattr(result, 'id'):
+                task_id = result.id
+                if ctx['json_output']:
+                    self.stdout.write(json.dumps({'task_id': str(task_id), 'status': 'queued'}, ensure_ascii=False))
+                elif ctx['quiet']:
+                    self.stdout.write(f'Task ID: {task_id}')
+                else:
+                    self.stdout.write(TEXT['queued'])
+                    self.stdout.write(f'Task ID: {task_id}')
+                    self.stdout.write('Проверьте статус через логи или Django shell')
+            else:
+                if ctx['json_output']:
+                    self.stdout.write(json.dumps({'status': 'completed', 'result': result}, ensure_ascii=False))
+                elif ctx['quiet']:
+                    self.stdout.write('Задача выполнена синхронно')
+                else:
+                    self.stdout.write(self.style.WARNING('Брокер недоступен, задача выполнена синхронно'))
+                    self._print_results(result)
+                    
+        except BrokerUnavailableError as e:
+            error_msg = str(e)
+            if ctx['json_output']:
+                self.stdout.write(json.dumps({
+                    'error': error_msg,
+                    'suggestions': [
+                        'Запустите Celery worker: ergoms start-worker',
+                        'Используйте синхронный режим (без --async)'
+                    ]
+                }, ensure_ascii=False))
+            else:
+                self.stdout.write(self.style.ERROR(f'Ошибка: {error_msg}'))
+                self.stdout.write('')
+                self.stdout.write('Решения:')
+                self.stdout.write('  1. Запустите Celery worker: ergoms start-worker')
+                self.stdout.write('  2. Используйте синхронный режим (без --async)')
+            raise CommandError(error_msg)
+
+    def _run_sync(self, task_func, params: Dict[str, Any], ctx: Dict[str, Any]):
+        if not ctx['quiet'] and not ctx['json_output']:
+            self.stdout.write(TEXT['started'])
+        result = task_func(**params)
+        if ctx['json_output']:
+            self.stdout.write(json.dumps(result, ensure_ascii=False, indent=2))
+            return
+        if not ctx['quiet']:
+            self.stdout.write(TEXT['finished'])
+        if result.get('error'):
+            self.stdout.write(f'Ошибка: {result["error"]}')
+        else:
+            self._print_results(result)
 
 
 

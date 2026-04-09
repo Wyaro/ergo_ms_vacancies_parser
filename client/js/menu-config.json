@@ -1,0 +1,35 @@
+{
+  "menuSections": [
+    {
+      "icon": "BarChart3",
+      "routeName": "VacanciesParserMain",
+      "title": "Парсинг вакансий",
+      "list": [
+        {
+          "routeName": "VacanciesDashboard",
+          "name": "Дашборд"
+        },
+        {
+          "routeName": "VacanciesParser",
+          "name": "Задачи парсинга"
+        },
+        {
+          "routeName": "VacanciesParserResults",
+          "name": "Результаты"
+        },
+        {
+          "routeName": "VacanciesList",
+          "name": "Вакансии"
+        },
+        {
+          "routeName": "VacancyStats",
+          "name": "Статистика"
+        },
+        {
+          "routeName": "ParsingControl",
+          "name": "Управление парсингом"
+        }
+      ]
+    }
+  ]
+}

@@ -25,11 +25,11 @@ logger = logging.getLogger('modules.vacancies_parser.headhunter.async')
 class AsyncParsingConfig:
     """Конфигурация асинхронного парсинга"""
     max_concurrent_requests: int = 10  # Максимум одновременных запросов
-    request_delay: float = 0.1  # Задержка между запросами (сек)
-    timeout: int = 30  # Таймаут запроса (сек)
+    request_delay: float = 0.075  # Задержка между запросами (сек)
+    timeout: int = 23  # Таймаут запроса (сек)
     max_retries: int = 3  # Максимум попыток
-    base_retry_delay: float = 1.0  # Базовая задержка перед повтором
-    max_retry_delay: float = 60.0  # Максимальная задержка перед повтором
+    base_retry_delay: float = 0.75  # Базовая задержка перед повтором
+    max_retry_delay: float = 45.0  # Максимальная задержка перед повтором
 
 
 class AsyncHeadHunterParser:
@@ -89,6 +89,8 @@ class AsyncHeadHunterParser:
         
         last_error = None
         
+        assert self._semaphore is not None
+
         for attempt in range(self.config.max_retries):
             try:
                 async with self._semaphore:
@@ -108,17 +110,12 @@ class AsyncHeadHunterParser:
                             await asyncio.sleep(retry_after)
                             continue
                         
-                        # Forbidden
+                        # Forbidden (постоянная ошибка доступа, повторять запрос нет смысла)
                         if response.status == 403:
                             self.metrics.record_request(success=False)
                             self.metrics.record_error(f"403 Forbidden для {url}")
                             logger.error("Доступ запрещён (403) для %s", url)
-                            delay = min(
-                                self.config.base_retry_delay * (2 ** attempt) * 5,
-                                self.config.max_retry_delay
-                            )
-                            await asyncio.sleep(delay)
-                            continue
+                            return None
                         
                         # Not Found (вакансия закрыта)
                         if response.status == 404:
@@ -229,7 +226,7 @@ async def check_vacancies_status_async(
     
     # Получаем активные вакансии
     active_vacancies = list(
-        Vacancy.objects.filter(is_active=True)
+        Vacancy.objects.filter(is_active=True)  # type: ignore[attr-defined]
         .order_by('updated_at')
         .values_list('id', 'hh_id')[:max_vacancies]
     )
@@ -266,7 +263,9 @@ async def check_vacancies_status_async(
             ]
             
             if ids_to_deactivate:
-                Vacancy.objects.filter(id__in=ids_to_deactivate).update(
+                Vacancy.objects.filter(  # type: ignore[attr-defined]
+                    id__in=ids_to_deactivate
+                ).update(
                     is_active=False,
                     updated_at=timezone.now()
                 )

@@ -2,6 +2,7 @@ import json
 import os
 import time
 import sys
+from pathlib import Path
 from django.core.management.base import BaseCommand
 from modules.vacancies_parser.api.headhunter.scripts import parse_vacancies_by_text, parse_all_vacancies
 from modules.vacancies_parser.api.headhunter.tasks import parse_hh_vacancies_task
@@ -97,22 +98,27 @@ class Command(BaseCommand):
         """Загрузка конфигурации из JSON файла"""
         try:
             # Получаем абсолютный путь к конфигурационному файлу
-            if not os.path.isabs(config_path):
-                # Если путь относительный, ищем файл в той же папке, где находится команда
-                command_dir = os.path.dirname(__file__)
-                config_path = os.path.join(command_dir, config_path)
+            if os.path.isabs(config_path):
+                # Абсолютный путь - используем как есть
+                config_file = Path(config_path)
+            else:
+                # Относительный путь - ищем в папке config модуля
+                # Путь относительно корня модуля: modules/vacancies_parser/api/headhunter/
+                module_dir = Path(__file__).parent.parent.parent
+                config_dir = module_dir / 'config'
+                config_file = config_dir / config_path
             
-            if not os.path.exists(config_path):
+            if not config_file.exists():
                 self.stdout.write(
-                    f'Конфигурационный файл не найден: {config_path}'
+                    f'Конфигурационный файл не найден: {config_file}'
                 )
                 return None
             
-            with open(config_path, 'r', encoding='utf-8') as f:
+            with open(config_file, 'r', encoding='utf-8') as f:
                 config = json.load(f)
             
             self.stdout.write(
-                f'Конфигурация загружена из: {config_path}'
+                f'Конфигурация загружена из: {config_file}'
             )
             return config
             

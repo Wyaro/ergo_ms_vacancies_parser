@@ -1,210 +1,109 @@
-# Парсер вакансий SuperJob
+# SuperJob - Парсер вакансий
 
-Модуль для парсинга вакансий с сайта SuperJob через их API.
+Модуль парсинга вакансий с SuperJob API v2.0.
 
-## Возможности
+Полная справка по всем командам: `ergoms api superjob_help`
 
-- Парсинг вакансий по текстовым запросам
-- Универсальный парсинг по популярным запросам
-- Получение детальной информации о конкретных вакансиях
-- Сохранение в базу данных с версионностью
-- Асинхронная обработка через Celery
-- Поддержка фильтров (город, опыт, тип занятости, график работы)
+## Команды
 
-## Установка и настройка
+### parse_superjob_vacancies - Парсинг вакансий
 
-### 1. Получение API ключа SuperJob
-
-Для работы с API SuperJob необходимо получить API ключ:
-1. Зарегистрируйтесь на [SuperJob](https://www.superjob.ru/)
-2. Перейдите в раздел для разработчиков
-3. Получите API ключ
-
-### 2. Настройка конфигурации
-
-Отредактируйте файл `management/commands/config.json`:
-
-```json
-{
-  "api_key": "ваш_api_ключ_superjob",
-  "search_queries": [
-    "Python",
-    "JavaScript",
-    "Java",
-    "React",
-    "Vue",
-    "Django",
-    "DevOps"
-  ],
-  "town": "Москва",
-  "experience": null,
-  "employment": null,
-  "schedule": null,
-  "max_pages": 5,
-  "delay": 1.0,
-  "universal_parsing": {
-    "max_pages_per_query": 3,
-    "delay": 1.0
-  }
-}
+**По текстовому запросу:**
+```bash
+ergoms api parse_superjob_vacancies --text "Python"                        # Поиск по ключевому слову
+ergoms api parse_superjob_vacancies --text "Python" --town "Москва"        # С фильтром по городу
+ergoms api parse_superjob_vacancies --text "Django" --max-pages 20         # С увеличенным количеством страниц
+ergoms api parse_superjob_vacancies --text "React" --delay 0.5             # С изменённой задержкой между запросами
 ```
 
-## Использование
+**По каталогам (отраслям) - самый эффективный режим, без дубликатов:**
+```bash
+ergoms api parse_superjob_vacancies --list-catalogues                      # Вывести список всех каталогов и выйти
+ergoms api parse_superjob_vacancies --catalogues                           # Парсинг по всем каталогам
+ergoms api parse_superjob_vacancies --catalogues --catalogue-ids 33,381    # Только IT (33) и банки (381)
+ergoms api parse_superjob_vacancies --catalogues --max-pages-per-catalogue 20  # С настройкой глубины на каталог
+```
 
-### Основные команды
+**Универсальный парсинг (по набору популярных запросов):**
+```bash
+ergoms api parse_superjob_vacancies --all                                  # Парсинг по ~35 популярным запросам
+ergoms api parse_superjob_vacancies --all --max-pages 10                   # С увеличенной глубиной на запрос
+```
 
-#### 1. Парсинг вакансий по текстовому запросу
+**Максимальный режим (500 страниц = до 50 000 вакансий на запрос/каталог):**
+```bash
+ergoms api parse_superjob_vacancies --text "Python" --max                  # Максимум вакансий по запросу
+ergoms api parse_superjob_vacancies --catalogues --max                     # Максимум по всем каталогам
+ergoms api parse_superjob_vacancies --all --max                            # Максимум по всем запросам
+```
+
+**Детали одной вакансии:**
+```bash
+ergoms api parse_superjob_vacancies --vacancy-id 12345678                  # Получить детали вакансии по ID на SuperJob
+```
+
+**Из конфиг-файла:**
+```bash
+ergoms api parse_superjob_vacancies --config my_config.json                # Парсинг по параметрам из JSON-файла
+```
+
+**Общие флаги (комбинируются с любым режимом):**
+```bash
+--api-key "v3.r.XXX..."   # API-ключ вручную (вместо .env)
+--celery                   # Запуск через Celery (асинхронно)
+--celery --wait            # Celery + дождаться результата
+--delay 0.5                # Задержка между запросами (сек)
+```
+
+### parse_superjob_vacancy - Одна вакансия с SuperJob
 
 ```bash
-# Синхронный режим
-python src/manage.py parse_superjob_vacancies --text "Python" --wait
-
-# Асинхронный режим
-python src/manage.py parse_superjob_vacancies --text "Python"
-
-# С дополнительными фильтрами
-python src/manage.py parse_superjob_vacancies --text "Python" --town "Москва" --experience "between1And3" --employment "full" --wait
+ergoms api parse_superjob_vacancy 12345678                                 # Получить и показать данные вакансии
+ergoms api parse_superjob_vacancy 12345678 --save                          # Получить и сохранить в БД
+ergoms api parse_superjob_vacancy 12345678 --api-key "v3.r.XXX..."         # С указанием API-ключа вручную
 ```
 
-#### 2. Универсальный парсинг
+### show_superjob_vacancies - Просмотр вакансий из БД
 
 ```bash
-# Парсинг по всем популярным запросам
-python src/manage.py parse_superjob_vacancies --universal --wait
-
-# С ограничением страниц
-python src/manage.py parse_superjob_vacancies --universal --pages-per-query 2 --wait
+ergoms api show_superjob_vacancies                                         # Последние 20 вакансий
+ergoms api show_superjob_vacancies --id 42                                 # Вакансия по ID записи в БД
+ergoms api show_superjob_vacancies --superjob-id 12345678                  # Вакансия по ID на SuperJob
+ergoms api show_superjob_vacancies --search "Python" --city "Москва"       # Поиск по тексту + город
+ergoms api show_superjob_vacancies --salary-min 150000 --active            # Фильтр по зарплате и активности
+ergoms api show_superjob_vacancies --count                                 # Только количество вакансий
+ergoms api show_superjob_vacancies --full --limit 5                        # Полный вывод с описанием
+ergoms api show_superjob_vacancies --limit 20 --offset 40                  # Пагинация
 ```
 
-#### 3. Получение деталей конкретной вакансии
+### superjob_help - Справка
 
 ```bash
-# Получение деталей вакансии
-python src/manage.py parse_superjob_vacancy 123456 --wait
-
-# С сохранением в базу данных
-python src/manage.py parse_superjob_vacancy 123456 --wait --save
+ergoms api superjob_help                                                   # Все команды, параметры, примеры
 ```
 
-### Параметры команд
+## API эндпоинты
 
-#### Общие параметры:
-- `--config` - путь к конфигурационному файлу (по умолчанию config.json)
-- `--api-key` - API ключ SuperJob
-- `--wait` - дождаться завершения задачи и вывести результат
+Все эндпоинты требуют авторизации (`IsAuthenticated`).
 
-#### Параметры поиска:
-- `--text` - текст для поиска (можно указать несколько слов)
-- `--town` - город для поиска
-- `--experience` - уровень опыта (noExperience, between1And3, between3And6, moreThan6)
-- `--employment` - тип занятости (full, part, project, volunteer, probation)
-- `--schedule` - график работы (fullDay, shift, flexible, remote, flyInFlyOut)
-- `--pages` - количество страниц для парсинга
-- `--delay` - задержка между запросами в секундах
+| Метод | URL | Описание |
+|-------|-----|----------|
+| GET | `/api/vacancies_parser/superjob/vacancies/` | Список вакансий |
+| GET | `/api/vacancies_parser/superjob/vacancies/{id}/` | Одна вакансия |
+| GET | `/api/vacancies_parser/superjob/vacancies/stats/` | Статистика |
+| GET | `/api/vacancies_parser/superjob/vacancies/{id}/versions/` | Версии вакансии |
+| GET | `/api/vacancies_parser/superjob/vacancies/{id}/changes/` | История изменений |
+| GET | `/api/vacancies_parser/superjob/vacancies/task_status/?task_id=...` | Статус Celery-задачи |
+| POST | `/api/vacancies_parser/superjob/parsing/parse_by_text/` | Парсинг по тексту |
+| POST | `/api/vacancies_parser/superjob/parsing/parse_all/` | Универсальный парсинг |
+| POST | `/api/vacancies_parser/superjob/parsing/parse_by_catalogues/` | Парсинг по каталогам |
+| POST | `/api/vacancies_parser/superjob/parsing/parse_by_config/` | Парсинг по конфигу |
+| GET | `/api/vacancies_parser/superjob/parsing/catalogues/` | Список каталогов |
+| POST | `/api/vacancies_parser/superjob/parsing/get_details/` | Детали вакансии |
 
-#### Специальные параметры:
-- `--universal` - универсальный парсинг по популярным запросам
-- `--pages-per-query` - количество страниц для каждого запроса
-- `--use-config-only` - использовать только настройки из конфигурационного файла
+## Ограничения SuperJob API
 
-## Модели данных
-
-### SuperJobVacancy
-Основная модель для хранения вакансий:
-- Основная информация (название, компания, зарплата)
-- Локация (город, адрес)
-- Описание и требования
-- Тип занятости и опыт
-- Навыки и ключевые слова
-- Ссылки и идентификаторы
-- Метаданные и статус
-
-### SuperJobVacancyVersion
-Модель для хранения версий вакансий:
-- Связь с основной вакансией
-- Номер версии
-- Описание изменений
-
-### SuperJobVacancyChangeHistory
-Модель для хранения истории изменений:
-- Поле, которое изменилось
-- Старое и новое значение
-- Дата изменения
-
-## API SuperJob
-
-### Основные эндпоинты:
-- `GET /2.0/vacancies/` - поиск вакансий
-- `GET /2.0/vacancies/{id}/` - получение деталей вакансии
-
-### Параметры поиска:
-- `keyword` - ключевое слово
-- `town` - город
-- `experience` - опыт работы
-- `employment` - тип занятости
-- `schedule` - график работы
-- `page` - номер страницы
-- `count` - количество вакансий на странице
-
-## Celery задачи
-
-### Доступные задачи:
-- `parse_superjob_vacancies` - парсинг вакансий по запросу
-- `parse_all_superjob_vacancies` - универсальный парсинг
-- `get_superjob_vacancy_details` - получение деталей вакансии
-- `parse_superjob_vacancies_by_config` - парсинг по конфигурации
-
-### Мониторинг задач:
-```python
-from src.modules.vacancies_parser.superjob.tasks import get_task_status
-
-# Получение статуса задачи
-status = get_task_status(task_id)
-print(status)
-```
-
-## Обработка ошибок
-
-Парсер включает в себя:
-- Обработку сетевых ошибок
-- Логирование всех операций
-- Graceful degradation при отсутствии API ключа
-- Валидацию данных перед сохранением
-
-## Лимиты и ограничения
-
-- Рекомендуемая задержка между запросами: 1-2 секунды
-- Максимальное количество страниц на запрос: 5-10
-- API SuperJob имеет ограничения на количество запросов
-
-## Примеры использования
-
-### 1. Парсинг IT вакансий в Москве
-```bash
-python src/manage.py parse_superjob_vacancies --text "Python" "JavaScript" "React" --town "Москва" --experience "between1And3" --wait
-```
-
-### 2. Универсальный парсинг с ограничениями
-```bash
-python src/manage.py parse_superjob_vacancies --universal --pages-per-query 2 --delay 2.0 --wait
-```
-
-### 3. Получение деталей вакансии
-```bash
-python src/manage.py parse_superjob_vacancy 123456 --wait --save
-```
-
-## Логирование
-
-Все операции логируются с использованием стандартного Django logging:
-- INFO - успешные операции
-- WARNING - предупреждения (отсутствие API ключа и т.д.)
-- ERROR - ошибки при запросах или сохранении
-
-## Примечания
-
-1. **API ключ**: Для полного доступа к API SuperJob необходим API ключ
-2. **Лимиты**: Соблюдайте лимиты API для избежания блокировки
-3. **Задержки**: Используйте задержки между запросами для корректной работы
-4. **Версионность**: Система автоматически отслеживает изменения в вакансиях
-5. **Асинхронность**: Используйте Celery для обработки больших объемов данных 
+- 120 запросов/минуту на API-ключ
+- Максимум 100 вакансий в одном ответе
+- Максимум 500  страниц на один поисковый запрос
+- API-ключ передается через заголовок `X-Api-App-Id`

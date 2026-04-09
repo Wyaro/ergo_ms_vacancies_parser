@@ -42,6 +42,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Вакансия',
                 'verbose_name_plural': 'Вакансии',
                 'ordering': ['-published_at'],
+                'db_table': 'vpm_hh_vacancy',
                 'indexes': [models.Index(fields=['title'], name='vacancies_p_title_58635d_idx'), models.Index(fields=['company_name'], name='vacancies_p_company_d90742_idx'), models.Index(fields=['city'], name='vacancies_p_city_176a9d_idx'), models.Index(fields=['published_at'], name='vacancies_p_publish_b8da66_idx'), models.Index(fields=['hh_id'], name='vacancies_p_hh_id_4207eb_idx')],
             },
         ),

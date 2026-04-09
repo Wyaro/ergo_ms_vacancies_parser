@@ -55,6 +55,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Вакансия SuperJob',
                 'verbose_name_plural': 'Вакансии SuperJob',
                 'ordering': ['-published_at'],
+                'db_table': 'vpm_sj_vacancy',
                 'indexes': [models.Index(fields=['title'], name='vacancies_p_title_cd8ce7_idx'), models.Index(fields=['company_name'], name='vacancies_p_company_3fd3b5_idx'), models.Index(fields=['city'], name='vacancies_p_city_6a5a90_idx'), models.Index(fields=['published_at'], name='vacancies_p_publish_48800a_idx'), models.Index(fields=['superjob_id'], name='vacancies_p_superjo_65b74d_idx'), models.Index(fields=['employer_id'], name='vacancies_p_employe_bf3c34_idx'), models.Index(fields=['current_version'], name='vacancies_p_current_74ba20_idx')],
             },
         ),
@@ -71,6 +72,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Версия вакансии SuperJob',
                 'verbose_name_plural': 'Версии вакансий SuperJob',
                 'ordering': ['-version_number'],
+                'db_table': 'vpm_sj_vacancy_version',
             },
         ),
         migrations.CreateModel(
@@ -88,6 +90,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'История изменений вакансии SuperJob',
                 'verbose_name_plural': 'История изменений вакансий SuperJob',
                 'ordering': ['-created_at'],
+                'db_table': 'vpm_sj_vacancy_change_history',
             },
         ),
         migrations.AddIndex(

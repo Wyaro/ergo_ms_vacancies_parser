@@ -1,110 +1,330 @@
 {
   "enabled": true,
-  "description": "Конфигурация фонового парсинга вакансий HeadHunter для сбора данных по технологиям",
-  "version": "0.3",
-  "updated": "2025-11-24",
+  "description": "Конфигурация фонового парсинга вакансий HeadHunter для сбора данных по технологиям и профессиональным ролям",
+  "version": "0.4",
+  "updated": "2025-01-27",
   
   "schedules": {
-    "languages_workdays": {
+    "languages_workdays_morning": {
       "enabled": true,
       "category": "LANG",
-      "interval": "weekdays 06:15, 12:15, 18:15",
+      "interval": "weekdays 06:15",
       "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
       "max_queries": 20,
       "priority": 8,
-      "description": "Языки программирования 3 раза в рабочие дни (утро/обед/вечер)"
+      "expires_hours": 4,
+      "description": "Языки программирования - утро в рабочие дни"
     },
-    "languages_weekend": {
+    "languages_workdays_noon": {
       "enabled": true,
       "category": "LANG",
-      "interval": "weekend 10:15, 18:15",
+      "interval": "weekdays 12:15",
       "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
+      "max_queries": 20,
+      "priority": 8,
+      "expires_hours": 4,
+      "description": "Языки программирования - обед в рабочие дни"
+    },
+    "languages_workdays_evening": {
+      "enabled": true,
+      "category": "LANG",
+      "interval": "weekdays 18:15",
+      "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
+      "max_queries": 20,
+      "priority": 8,
+      "expires_hours": 4,
+      "description": "Языки программирования - вечер в рабочие дни"
+    },
+    "languages_weekend_morning": {
+      "enabled": true,
+      "category": "LANG",
+      "interval": "weekend 10:15",
+      "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
       "max_queries": 20,
       "priority": 6,
-      "description": "Языки программирования 2 раза в выходные"
+      "expires_hours": 6,
+      "description": "Языки программирования - утро в выходные"
     },
-    "frameworks_workdays": {
+    "languages_weekend_evening": {
+      "enabled": true,
+      "category": "LANG",
+      "interval": "weekend 18:15",
+      "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
+      "max_queries": 20,
+      "priority": 6,
+      "expires_hours": 6,
+      "description": "Языки программирования - вечер в выходные"
+    },
+    "frameworks_workdays_morning": {
       "enabled": true,
       "category": "FRAMEWORK",
-      "interval": "weekdays 07:30, 13:30, 19:30",
+      "interval": "weekdays 07:30",
       "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
       "max_queries": 25,
       "priority": 7,
-      "description": "Фреймворки 3 раза в рабочие дни со сдвигом от языков"
+      "expires_hours": 4,
+      "description": "Фреймворки - утро в рабочие дни (сдвиг от языков)"
     },
-    "frameworks_weekend": {
+    "frameworks_workdays_noon": {
       "enabled": true,
       "category": "FRAMEWORK",
-      "interval": "weekend 11:30, 19:30",
+      "interval": "weekdays 13:30",
       "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
+      "max_queries": 25,
+      "priority": 7,
+      "expires_hours": 4,
+      "description": "Фреймворки - обед в рабочие дни"
+    },
+    "frameworks_workdays_evening": {
+      "enabled": true,
+      "category": "FRAMEWORK",
+      "interval": "weekdays 19:30",
+      "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
+      "max_queries": 25,
+      "priority": 7,
+      "expires_hours": 4,
+      "description": "Фреймворки - вечер в рабочие дни"
+    },
+    "frameworks_weekend_morning": {
+      "enabled": true,
+      "category": "FRAMEWORK",
+      "interval": "weekend 11:30",
+      "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
       "max_queries": 25,
       "priority": 5,
-      "description": "Фреймворки 2 раза в выходные"
+      "expires_hours": 6,
+      "description": "Фреймворки - утро в выходные"
     },
-    "databases_twice_daily": {
+    "frameworks_weekend_evening": {
+      "enabled": true,
+      "category": "FRAMEWORK",
+      "interval": "weekend 19:30",
+      "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
+      "max_queries": 25,
+      "priority": 5,
+      "expires_hours": 6,
+      "description": "Фреймворки - вечер в выходные"
+    },
+    "databases_morning": {
       "enabled": true,
       "category": "DB",
-      "interval": "daily 08:45, 20:45",
+      "interval": "daily 08:45",
       "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
       "max_queries": 15,
       "priority": 5,
-      "description": "Базы данных 2 раза в день (утро и вечер)"
+      "expires_hours": 8,
+      "description": "Базы данных - утро"
+    },
+    "databases_evening": {
+      "enabled": true,
+      "category": "DB",
+      "interval": "daily 20:45",
+      "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
+      "max_queries": 15,
+      "priority": 5,
+      "expires_hours": 8,
+      "description": "Базы данных - вечер"
     },
     "tools_daily": {
       "enabled": true,
       "category": "TOOL",
       "interval": "daily 14:00",
       "pages": 2,
+      "delay": 1.5,
+      "get_details": true,
       "max_queries": 15,
       "priority": 4,
-      "description": "Инструменты 1 раз в день в обед"
+      "expires_hours": 12,
+      "description": "Инструменты - 1 раз в день в обед"
     },
     "platforms_nightly": {
       "enabled": true,
       "category": "PLATFORM",
       "interval": "daily 23:30",
       "pages": 2,
-      "max_queries": 15,
+      "delay": 2.0,
+      "get_details": true,
       "use_aliases": true,
+      "max_queries": 15,
       "priority": 3,
-      "description": "Облачные платформы ночью когда нагрузка минимальна"
+      "expires_hours": 20,
+      "description": "Облачные платформы - ночью когда нагрузка минимальна"
     },
-    "top20_pulse": {
+    "top20_pulse_09": {
       "enabled": true,
-      "interval": "weekdays */3 hours (09:00-21:00)",
+      "task_type": "by_technologies",
+      "interval": "weekdays 09:00",
       "top_n": 20,
       "pages": 1,
+      "delay": 1.0,
       "get_details": false,
+      "max_queries": 20,
       "priority": 9,
-      "description": "Быстрый пульс топ-20 технологий каждые 3 часа в рабочее время"
+      "expires_hours": 2,
+      "description": "Пульс топ-20 технологий - 9:00 (рабочие дни)"
+    },
+    "top20_pulse_12": {
+      "enabled": true,
+      "task_type": "by_technologies",
+      "interval": "weekdays 12:00",
+      "top_n": 20,
+      "pages": 1,
+      "delay": 1.0,
+      "get_details": false,
+      "max_queries": 20,
+      "priority": 9,
+      "expires_hours": 2,
+      "description": "Пульс топ-20 технологий - 12:00 (рабочие дни)"
+    },
+    "top20_pulse_15": {
+      "enabled": true,
+      "task_type": "by_technologies",
+      "interval": "weekdays 15:00",
+      "top_n": 20,
+      "pages": 1,
+      "delay": 1.0,
+      "get_details": false,
+      "max_queries": 20,
+      "priority": 9,
+      "expires_hours": 2,
+      "description": "Пульс топ-20 технологий - 15:00 (рабочие дни)"
+    },
+    "top20_pulse_18": {
+      "enabled": true,
+      "task_type": "by_technologies",
+      "interval": "weekdays 18:00",
+      "top_n": 20,
+      "pages": 1,
+      "delay": 1.0,
+      "get_details": false,
+      "max_queries": 20,
+      "priority": 9,
+      "expires_hours": 2,
+      "description": "Пульс топ-20 технологий - 18:00 (рабочие дни)"
+    },
+    "top20_pulse_21": {
+      "enabled": true,
+      "task_type": "by_technologies",
+      "interval": "weekdays 21:00",
+      "top_n": 20,
+      "pages": 1,
+      "delay": 1.0,
+      "get_details": false,
+      "max_queries": 20,
+      "priority": 9,
+      "expires_hours": 2,
+      "description": "Пульс топ-20 технологий - 21:00 (рабочие дни)"
     },
     "top40_deep_scan": {
       "enabled": true,
+      "task_type": "by_technologies",
       "interval": "daily 03:00",
       "top_n": 40,
       "categories": ["LANG", "FRAMEWORK"],
       "pages": 3,
+      "delay": 2.0,
       "get_details": true,
+      "max_queries": 40,
       "priority": 6,
+      "expires_hours": 4,
       "description": "Глубокое сканирование топ-40 ночью с полными деталями"
     },
     "weekly_comprehensive": {
       "enabled": true,
+      "task_type": "by_technologies",
       "interval": "Sunday 04:00",
       "top_n": 60,
+      "categories": ["LANG", "FRAMEWORK", "DB", "TOOL"],
       "use_aliases": true,
       "pages": 3,
+      "delay": 2.5,
+      "get_details": true,
       "max_queries": 120,
       "priority": 7,
+      "expires_hours": 6,
       "description": "Еженедельный полный парсинг всех технологий с алиасами"
     },
     "vacancies_status_check": {
       "enabled": true,
+      "task_type": "status_check",
       "interval": "daily 05:00",
       "batch_size": 150,
+      "delay": 0.2,
       "max_vacancies": 800,
       "priority": 2,
+      "expires_hours": 6,
       "description": "Проверка актуальности вакансий рано утром"
+    },
+    "update_professional_roles": {
+      "enabled": true,
+      "task_type": "update_roles",
+      "interval": "Sunday 06:30",
+      "priority": 1,
+      "expires_hours": 24,
+      "description": "Актуализация справочника профессиональных ролей IT (еженедельно)"
+    },
+    "professional_roles_comprehensive": {
+      "enabled": true,
+      "task_type": "by_professional_roles",
+      "interval": "Monday 03:00",
+      "pages": 5,
+      "delay": 3.0,
+      "get_details": true,
+      "max_concurrent_roles": 3,
+      "batch_size": 5,
+      "priority": 9,
+      "expires_hours": 48,
+      "description": "Полный парсинг по профессиональным ролям IT - понедельник (глубокое сканирование)"
+    },
+    "professional_roles_daily": {
+      "enabled": true,
+      "task_type": "by_professional_roles",
+      "interval": "Tuesday-Friday 09:00",
+      "pages": 2,
+      "delay": 2.0,
+      "get_details": true,
+      "max_concurrent_roles": 5,
+      "batch_size": 8,
+      "priority": 8,
+      "expires_hours": 24,
+      "description": "Ежедневный парсинг по профессиональным ролям IT - вторник-пятница"
+    },
+    "professional_roles_quick_scan": {
+      "enabled": true,
+      "task_type": "by_professional_roles",
+      "interval": "Saturday 14:30",
+      "pages": 1,
+      "delay": 1.5,
+      "get_details": false,
+      "max_concurrent_roles": 8,
+      "batch_size": 10,
+      "priority": 6,
+      "expires_hours": 12,
+      "description": "Быстрое сканирование по профессиональным ролям IT - суббота"
     }
   },
   
@@ -131,13 +351,39 @@
   },
 
   "priority_levels": {
-    "9": "Критический - пульс топовых технологий",
-    "8": "Высокий - языки программирования",
+    "9": "Критический - пульс топовых технологий, полный парсинг ролей",
+    "8": "Высокий - языки программирования, ежедневный парсинг ролей",
     "7": "Средне-высокий - фреймворки, еженедельный парсинг",
-    "6": "Средний - глубокое сканирование, выходные",
+    "6": "Средний - глубокое сканирование, выходные, быстрый парсинг ролей",
     "5": "Средне-низкий - базы данных, фреймворки в выходные",
     "4": "Низкий - инструменты",
     "3": "Фоновый - платформы",
-    "2": "Минимальный - проверка статуса"
+    "2": "Минимальный - проверка статуса",
+    "1": "Системный - обновление справочников"
+  },
+
+  "statistics": {
+    "total_tasks": 25,
+    "tasks_by_type": {
+      "by_category": 12,
+      "by_technologies": 7,
+      "by_professional_roles": 3,
+      "status_check": 1,
+      "update_roles": 1,
+      "other": 1
+    },
+    "tasks_by_frequency": {
+      "multiple_daily": 12,
+      "daily": 4,
+      "weekly": 3,
+      "workdays_only": 5,
+      "weekend_only": 1
+    },
+    "peak_hours": {
+      "morning": "06:00-09:00",
+      "noon": "12:00-15:00",
+      "evening": "18:00-21:00",
+      "night": "23:00-05:00"
+    }
   }
 }

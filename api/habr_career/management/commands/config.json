@@ -1,8 +1,8 @@
 {
-    "access_token": "",
     "pages": 5,
     "delay": 1.0,
     "get_details": true,
+    "search_text": "IT",
     "parse_archived": false,
     "parse_all": false
 } 

@@ -22,6 +22,9 @@ class HeadhunterCeleryBeatConfig(CeleryBeatModuleConfig):
     - Приоритизация по важности категорий
     """
     
+    def __init__(self, module_name: str):
+        super().__init__(module_name)
+    
     def get_beat_schedule(self) -> Dict[str, Dict[str, Any]]:
         """
         Расписание периодических задач для парсинга вакансий.
@@ -30,6 +33,48 @@ class HeadhunterCeleryBeatConfig(CeleryBeatModuleConfig):
             Dict[str, Dict[str, Any]]: Расписание задач
         """
         return {
+            # ============================================================
+            # ЕЖЕДНЕВНЫЙ ПАРСИНГ (высший приоритет) — новый pipeline
+            # ============================================================
+            'hh-daily-yesterday-today': {
+                'task': 'vacancies_parser.tasks.create_parsing_task',
+                'schedule': crontab(minute=0, hour=2),
+                'args': [
+                    'headhunter',
+                    'api',
+                    {'area': 113, 'pages': 20, 'per_page': 100, 'delay': 1.5},
+                ],
+                'kwargs': {
+                    'name': 'HH: ежедневный парсинг IT-вакансий',
+                },
+                'options': {
+                    'queue': 'vacancies_parser',
+                    'priority': 10,
+                    'expires': 6 * 60 * 60,
+                }
+            },
+
+            # ============================================================
+            # МЕСЯЧНЫЙ ГЛУБОКИЙ ПРОГОН — новый pipeline
+            # ============================================================
+            'hh-monthly-recursive': {
+                'task': 'vacancies_parser.tasks.create_parsing_task',
+                'schedule': crontab(minute=0, hour=1, day_of_month='1'),
+                'args': [
+                    'headhunter',
+                    'api',
+                    {'area': 113, 'pages': 20, 'per_page': 100, 'delay': 1.5, 'text': 'программист'},
+                ],
+                'kwargs': {
+                    'name': 'HH: ежемесячный глубокий прогон',
+                },
+                'options': {
+                    'queue': 'vacancies_parser',
+                    'priority': 9,
+                    'expires': 12 * 60 * 60,
+                }
+            },
+            
             # ============================================================
             # ЯЗЫКИ ПРОГРАММИРОВАНИЯ - РАБОЧИЕ ДНИ (3 раза в день)
             # ============================================================
@@ -470,6 +515,78 @@ class HeadhunterCeleryBeatConfig(CeleryBeatModuleConfig):
                     'queue': 'headhunter',
                     'priority': 2,
                     'expires': 6 * 60 * 60,
+                }
+            },
+
+            # ============================================================
+            # АКТУАЛИЗАЦИЯ СПРАВОЧНИКА ПРОФЕССИОНАЛЬНЫХ РОЛЕЙ (еженедельно)
+            # ============================================================
+            'hh-update-professional-roles': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.get_professional_roles_task',
+                'schedule': crontab(minute=30, hour=6, day_of_week='sunday'),
+                'kwargs': {},
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 1,
+                    'expires': 24 * 60 * 60,
+                }
+            },
+
+            # ============================================================
+            # ПАРСИНГ ПО ПРОФЕССИОНАЛЬНЫМ РОЛЯМ IT
+            # ============================================================
+            'hh-professional-roles-comprehensive': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_professional_roles',
+                'schedule': crontab(minute=0, hour=3, day_of_week='monday'),
+                'kwargs': {
+                    'area': 113,
+                    'pages': 5,
+                    'delay': 3.0,
+                    'get_details': True,
+                    'max_concurrent_roles': 3,
+                    'batch_size': 5,
+                    'force_refresh_roles': False
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 9,
+                    'expires': 48 * 60 * 60,
+                }
+            },
+            'hh-professional-roles-daily': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_professional_roles',
+                'schedule': crontab(minute=0, hour=9, day_of_week='tuesday,wednesday,thursday,friday'),
+                'kwargs': {
+                    'area': 113,
+                    'pages': 2,
+                    'delay': 2.0,
+                    'get_details': True,
+                    'max_concurrent_roles': 5,
+                    'batch_size': 8,
+                    'force_refresh_roles': False
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 8,
+                    'expires': 24 * 60 * 60,
+                }
+            },
+            'hh-professional-roles-quick-scan': {
+                'task': 'modules.vacancies_parser.api.headhunter.tasks.parse_vacancies_by_professional_roles',
+                'schedule': crontab(minute=30, hour=14, day_of_week='saturday'),
+                'kwargs': {
+                    'area': 113,
+                    'pages': 1,
+                    'delay': 1.5,
+                    'get_details': False,
+                    'max_concurrent_roles': 8,
+                    'batch_size': 10,
+                    'force_refresh_roles': False
+                },
+                'options': {
+                    'queue': 'headhunter',
+                    'priority': 6,
+                    'expires': 12 * 60 * 60,
                 }
             },
         }

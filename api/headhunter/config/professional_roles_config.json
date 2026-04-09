@@ -1,0 +1,37 @@
+{
+  "enabled": true,
+  "description": "Конфигурация для работы с профессиональными ролями IT категории HeadHunter",
+  "version": "1.0",
+  "updated": "2025-12-26",
+  
+  "target_category": {
+    "id": "11",
+    "name": "Информационные технологии, интернет, телеком",
+    "description": "Категория IT ролей для парсинга вакансий"
+  },
+  
+  "parsing_settings": {
+    "area": 113,
+    "pages": 20,
+    "delay": 0.5,
+    "get_details": true,
+    "max_concurrent_roles": 5,
+    "batch_size": 25,
+    "description": "Настройки парсинга вакансий по профессиональным ролям"
+  },
+  
+  "role_filters": {
+    "exclude_roles": [],
+    "include_only": null,
+    "use_static_file": false,
+    "static_file": "it_professional_roles.json",
+    "description": "Фильтры для исключения или включения конкретных ролей. Если use_static_file=true, роли загружаются из статического файла"
+  },
+  
+  "notes": {
+    "target_category": "ID категории 11 соответствует IT категории в HeadHunter API",
+    "parsing_settings": "area 113 = Россия, delay в секундах между запросами",
+    "role_filters": "exclude_roles - список ID ролей для исключения, include_only - если указан, парсятся только эти роли"
+  }
+}
+

@@ -4,10 +4,10 @@
 """
 
 from typing import Dict, Any
-from src.core.utils.celery.base import CeleryModuleConfig
+from ..core.celery_config_base import VacanciesParserCeleryConfigBase
 
 
-class HabrCareerCeleryConfig(CeleryModuleConfig):
+class HabrCareerCeleryConfig(VacanciesParserCeleryConfigBase):
     """
     Конфигурация Celery для модуля парсинга Habr Career.
     """
@@ -41,9 +41,19 @@ class HabrCareerCeleryConfig(CeleryModuleConfig):
                 'rate_limit': '2/h',   # Максимум 2 задачи в час
             },
             'modules.vacancies_parser.api.habr_career.tasks.parse_habr_all_vacancies_task': {
-                'time_limit': 7200,   # Таймаут 2 часа
-                'soft_time_limit': 6900,  # Мягкий таймаут 1 час 55 минут
-                'rate_limit': '1/h',   # Максимум 1 задача в час
+                'time_limit': 7200,
+                'soft_time_limit': 6900,
+                'rate_limit': '1/h',
+            },
+            'modules.vacancies_parser.api.habr_career.tasks.parse_habr_vacancies_by_technologies_task': {
+                'time_limit': 180,
+                'soft_time_limit': 120,
+                'rate_limit': '2/h',
+            },
+            'modules.vacancies_parser.api.habr_career.tasks.parse_habr_vacancies_chunk_task': {
+                'time_limit': 1800,
+                'soft_time_limit': 1500,
+                'rate_limit': None,
             },
         }
     
